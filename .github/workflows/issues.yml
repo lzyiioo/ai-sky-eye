@@ -1,0 +1,105 @@
+name: Issue Automation
+
+on:
+  issues:
+    types: [opened, edited]
+  issue_comment:
+    types: [created]
+
+jobs:
+  label-issue:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issues' && github.event.action == 'opened'
+
+    steps:
+    - uses: actions/github-script@v6
+      with:
+        script: |
+          const issue = context.payload.issue;
+          const title = issue.title.toLowerCase();
+          const body = issue.body ? issue.body.toLowerCase() : '';
+
+          const labels = [];
+
+          // Auto-label based on keywords
+          if (title.includes('bug') || body.includes('bug')) {
+            labels.push('bug');
+          }
+          if (title.includes('feature') || title.includes('enhancement') || body.includes('feature request')) {
+            labels.push('enhancement');
+          }
+          if (title.includes('doc') || body.includes('documentation')) {
+            labels.push('documentation');
+          }
+          if (title.includes('performance') || body.includes('slow')) {
+            labels.push('performance');
+          }
+          if (title.includes('ocr') || body.includes('ocr')) {
+            labels.push('ocr');
+          }
+          if (title.includes('ai') || body.includes('vision') || body.includes('smart')) {
+            labels.push('ai-features');
+          }
+
+          if (labels.length > 0) {
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              labels: labels
+            });
+          }
+
+  welcome-message:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issues' && github.event.action == 'opened'
+
+    steps:
+    - uses: actions/github-script@v6
+      with:
+        script: |
+          const issue = context.payload.issue;
+
+          const welcomeMessage = `👋 Thanks for opening this issue, @${issue.user.login}!
+
+          We appreciate your contribution to AI Sky Eye. Here's what happens next:
+
+          - 🔍 A maintainer will review your issue within 48 hours
+          - 🏷️ We'll add appropriate labels automatically
+          - 💬 Feel free to add more details if needed
+
+          If this is a **bug report**, please include:
+          - Steps to reproduce
+          - Expected vs actual behavior
+          - Your environment (Windows version, Python version)
+
+          If this is a **feature request**, please describe:
+          - The use case
+          - How it would benefit users
+          - Any implementation ideas you have
+
+          Thanks for helping make AI Sky Eye better! 🦞`;
+
+          await github.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: issue.number,
+            body: welcomeMessage
+          });
+
+  stale-issues:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+
+    steps:
+    - uses: actions/stale@v8
+      with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        stale-issue-message: 'This issue has been automatically marked as stale because it has not had recent activity. It will be closed if no further activity occurs. Thank you for your contributions.'
+        stale-pr-message: 'This pull request has been automatically marked as stale because it has not had recent activity. It will be closed if no further activity occurs. Thank you for your contributions.'
+        stale-issue-label: 'stale'
+        stale-pr-label: 'stale'
+        days-before-stale: 60
+        days-before-close: 7
+        exempt-issue-labels: 'pinned,security,enhancement'
+        exempt-pr-labels: 'pinned,work-in-progress'

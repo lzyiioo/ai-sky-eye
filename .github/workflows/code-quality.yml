@@ -1,0 +1,86 @@
+name: Code Quality
+
+on:
+  schedule:
+    # Run every Sunday at 00:00
+    - cron: '0 0 * * 0'
+  workflow_dispatch:
+
+jobs:
+  code-quality:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install tools
+      run: |
+        pip install pylint radon xenon
+
+    - name: Run pylint
+      run: |
+        pylint src/screen_controller --output-format=json > pylint-report.json || true
+        pylint src/screen_controller --output-format=text
+
+    - name: Calculate code metrics
+      run: |
+        radon cc src/ -a -nc --json > complexity-report.json || true
+        radon mi src/ --json > maintainability-report.json || true
+        radon raw src/ --json > raw-metrics.json || true
+
+    - name: Check code quality thresholds
+      run: |
+        xenon src/ --max-absolute B --max-modules B --max-average A || true
+
+    - name: Upload reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: code-quality-reports
+        path: |
+          pylint-report.json
+          complexity-report.json
+          maintainability-report.json
+          raw-metrics.json
+
+  dependency-update:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Check for dependency updates
+      run: |
+        pip install pip-upgrader
+        pip-upgrade --dry-run requirements.txt || true
+
+    - name: Create issue if updates available
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const { data: issues } = await github.rest.issues.listForRepo({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            labels: 'dependencies'
+          });
+
+          const existingIssue = issues.find(issue => issue.title.includes('Dependency Updates Available'));
+
+          if (!existingIssue) {
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: 'Dependency Updates Available',
+              body: 'Please review and update dependencies.',
+              labels: ['dependencies', 'maintenance']
+            });
+          }
