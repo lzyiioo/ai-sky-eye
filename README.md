@@ -401,15 +401,7 @@ curl http://localhost:8888/click -X POST -d '{"x":100,"y":200}'
 - 🔧 Enhanced OCR with multi-engine support
 - 🔧 Improved error handling and recovery
 
-### v2.0 (2026-04-09)
-- ✨ Complete rewrite with modular architecture
-- ✨ Added browser automation
-- ✨ Added remote API
-- ✨ Added task scheduling
 
-### v1.0 (2026-04-01)
-- 🎉 Initial release
-- Basic screen control and OCR
 
 ---
 
@@ -454,7 +446,7 @@ MIT License - See [LICENSE](LICENSE) file
 
 ## 💬 Support
 
-- 📧 Email: [your-email@example.com]
+- 📧 Email: [17321171@qq.com]
 - 🐛 Issues: [GitHub Issues](https://github.com/lzyiioo/ai-sky-eye/issues)
 - 💡 Discussions: [GitHub Discussions](https://github.com/lzyiioo/ai-sky-eye/discussions)
 
